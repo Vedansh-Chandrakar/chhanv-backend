@@ -1,0 +1,71 @@
+<?php
+require 'db.php';
+
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Headers: Content-Type");
+header("Content-Type: application/json");
+
+$data = json_decode(file_get_contents('php://input'), true);
+
+$id = $data['id'];
+$campName = $data['campName'];
+$location = $data['location'];
+$date = $data['date'];
+$startTime = $data['startTime'];
+$endTime = $data['endTime'];
+$address = $data['address'];
+$description = $data['description'];
+$expectedBeneficiaries = (int)$data['expectedBeneficiaries'];
+$doctors = $data['doctors'];
+$services = $data['services'];
+$status = $data['status'];
+$beneficiaries = (int)$data['beneficiaries'];
+$updatedAt = $data['updatedAt'] ?? date('Y-m-d H:i:s');
+
+// === SQL Update ===
+$stmt = $conn->query("
+    UPDATE camps SET  
+        campName = '$campName',
+        location = '$location',
+        date = '$date',
+        startTime = '$startTime',
+        endTime = '$endTime',
+        address = '$address',
+        description = '$description',
+        expectedBeneficiaries = $expectedBeneficiaries,
+        doctors = '$doctors',
+        services = '$services',
+        status = '$status',
+        beneficiaries = $beneficiaries,
+        updatedAt = '$updatedAt'
+    WHERE id = $id
+");
+
+// === Fetch updated scheduled camps ===
+$stmt = $conn->query("
+    SELECT id, campName, location, date, startTime, endTime, address, coordinator, expectedBeneficiaries, doctors, services, status, beneficiaries 
+    FROM camps 
+    WHERE status = 'scheduled'
+");
+
+while ($r = $stmt->fetch_array()) {
+    $posts[] = array(
+        "id" => $r[0],
+        "campName" => $r[1],
+        "location" => $r[2],
+        "date" => $r[3],
+        "startTime" => $r[4],
+        "endTime" => $r[5],
+        "address" => $r[6],
+        "coordinator" => $r[7],
+        "expectedBeneficiaries" => $r[8],
+        "doctors" => $r[9],
+        "services" => $r[10],
+        "status" => $r[11],
+        "beneficiaries" => $r[12]
+    );
+}
+
+$response['posts'] = $posts;
+echo json_encode($response);
+?>
