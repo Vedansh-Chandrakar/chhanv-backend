@@ -13,6 +13,7 @@ $id = $data['id'];
 $stmt = $conn->query("DELETE FROM camps WHERE id = " . $id);
 
 // Fetch updated list of scheduled camps
+$posts = [];
 $stmt = $conn->query("
     SELECT id, campName, location, date, startTime, endTime, address, coordinator, expectedBeneficiaries, doctors, services, status, beneficiaries 
     FROM camps 

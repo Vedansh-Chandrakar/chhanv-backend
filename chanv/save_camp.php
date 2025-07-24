@@ -23,7 +23,18 @@ $endTime = $data['endTime'];
 $address = $data['address'];
 $description = $data['description'];
 $expectedBeneficiaries = (int)$data['expectedBeneficiaries'];
-$doctors = $data['doctors']; // comma-separated or JSON string
+
+$doctorNames = [];
+$doctorIds = is_array($data['doctors']) ? $data['doctors'] : explode(',', $data['doctors']);
+foreach ($doctorIds as $docId) {
+    $docId = intval(trim($docId));
+    $res = $conn->query("SELECT name FROM doctors WHERE id = $docId");
+    if ($row = $res->fetch_assoc()) {
+        $doctorNames[] = $row['name'];
+    }
+}
+$doctors = implode(',', $doctorNames); // Store doctor names as string
+
 $services = $data['services']; // comma-separated or JSON string
 $coordinator = $data['coordinator'];
 $status = $data['status'];
@@ -31,7 +42,7 @@ $beneficiaries = (int)$data['beneficiaries'];
 $createdBy = $data['createdBy'];
 $createdAt = $data['createdAt'];
 
-
+// Insert into camps table (doctor names will be stored)
 $stmt = $conn->query("
     INSERT INTO camps 
     (campName, location, date, startTime, endTime, address, description, expectedBeneficiaries, doctors, services, coordinator, status, beneficiaries, createdBy, createdAt) 
@@ -54,12 +65,14 @@ $stmt = $conn->query("
     )
 ");
 
-
+// Fetch all scheduled camps
 $stmt = $conn->query("
     SELECT id, campName, location, date, startTime, endTime, address, coordinator, expectedBeneficiaries, doctors, services, status, beneficiaries 
     FROM camps 
     WHERE status = 'scheduled'
 ");
+
+$posts = [];
 
 while ($r = $stmt->fetch_array()) {
     $posts[] = array(
@@ -72,7 +85,7 @@ while ($r = $stmt->fetch_array()) {
         "address" => $r[6],
         "coordinator" => $r[7],
         "expectedBeneficiaries" => $r[8],
-        "doctors" => $r[9],
+        "doctors" => $r[9], // already names now
         "services" => $r[10],
         "status" => $r[11],
         "beneficiaries" => $r[12]

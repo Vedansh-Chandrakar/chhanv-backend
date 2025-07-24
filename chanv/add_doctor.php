@@ -5,54 +5,87 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Content-Type: application/json");
 
+// Get POST data
 $data = json_decode(file_get_contents('php://input'), true);
 
-$name = $data['name'];
-$specialty = $data['specialty'];
-$phone = $data['phone'];
-$email = $data['email'];
-$password = $data['password'];
-$experience = (int)$data['experience'];
-$qualification = $data['qualification'];
-$assignedCamps = $data['assignedCamps'];
+// Extract fields
+$name = trim($data['name'] ?? '');
+$specialty = trim($data['specialty'] ?? '');
+$phone = trim($data['phone'] ?? '');
+$email = trim($data['email'] ?? '');
+$password = trim($data['password'] ?? '');
+$experience = (int)($data['experience'] ?? 0);
+$qualification = trim($data['qualification'] ?? '');
+$assignedCamps = trim($data['assignedCamps'] ?? '');
 
-// Insert into doctors table (id is auto-increment)
-$stmt = $conn->query("
-    INSERT INTO doctors 
-    (name, specialization, phoneNo, email, password, experience, qualification, assignedCamps) 
-    VALUES (
-        '".$name."',
-        '".$specialty."',
-        '".$phone."',
-        '".$email."',
-        '".$password."',
-        ".$experience.",
-        '".$qualification."',
-        '".$assignedCamps."'
-    )
-");
-
-// ✅ Fetch updated doctors list
-$stmt = $conn->query("
-    SELECT id, name, specialization, phoneNo, email, experience, qualification, assignedCamps 
-    FROM doctors
-");
-
-$posts = [];
-while($r = $stmt->fetch_array()) {
-    $posts[] = array(
-        "id" => $r[0],
-        "name" => $r[1],
-        "specialization" => $r[2],
-        "phoneNo" => $r[3],
-        "email" => $r[4],
-        "experience" => $r[5],
-        "qualification" => $r[6],
-        "assignedCamps" => $r[7],
-    );
+// ✅ Validate inputs
+if (
+    empty($name) ||
+    empty($specialty) ||
+    empty($phone) ||
+    empty($email) ||
+    empty($password) ||
+    $experience <= 0
+) {
+    echo json_encode(['error' => 'Invalid input']);
+    exit;
 }
 
-$response['posts'] = $posts;
+try {
+    // ✅ Use prepared statements for security
+    $stmt = $conn->prepare("
+        INSERT INTO doctors 
+        (name, specialization, phoneNo, email, password, experience, qualification, assignedCamps)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ");
 
-echo json_encode($response);
+    $stmt->bind_param(
+        "ssssssss",
+        $name,
+        $specialty,
+        $phone,
+        $email,
+        $password,
+        $experience,
+        $qualification,
+        $assignedCamps
+    );
+
+    $stmt->execute();
+
+    // ✅ Fetch updated doctor list
+    $result = $conn->query("
+        SELECT id, name, specialization, phoneNo, email, experience, qualification, assignedCamps
+        FROM doctors
+    ");
+
+    $posts = [];
+
+    while ($r = $result->fetch_assoc()) {
+        // ✅ Filter out empty or invalid entries
+        if (
+            !empty($r['name']) &&
+            !empty($r['specialization']) &&
+            !empty($r['phoneNo']) &&
+            !empty($r['email']) &&
+            intval($r['experience']) > 0
+        ) {
+            $posts[] = array(
+                "id" => $r['id'],
+                "name" => $r['name'],
+                "specialization" => $r['specialization'],
+                "phoneNo" => $r['phoneNo'],
+                "email" => $r['email'],
+                "experience" => $r['experience'],
+                "qualification" => $r['qualification'],
+                "assignedCamps" => $r['assignedCamps'],
+            );
+        }
+    }
+
+    echo json_encode(['posts' => $posts]);
+
+} catch (Exception $e) {
+    echo json_encode(['error' => 'Server error: ' . $e->getMessage()]);
+}
 ?>
