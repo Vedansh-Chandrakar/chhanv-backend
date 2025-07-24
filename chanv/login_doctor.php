@@ -8,13 +8,18 @@ $data = json_decode(file_get_contents('php://input'), true);
 $email = $data['email'];
 $password = $data['password'];
 
-$stmt = $conn->query("SELECT * FROM doctors WHERE email='".$email."' and password='".$password."'");
-//
+$stmt = $conn->prepare("SELECT * FROM doctors WHERE email = ? AND password = ?");
+$stmt->bind_param("ss", $email, $password);
+$stmt->execute();
+$result = $stmt->get_result();
 
-if($user = $stmt ->fetch_array())
-{
-
-    // Encoding the response as JSON and sending it back
-    echo json_encode(array('name'=>$user[1],'email'=>$user[5],'role'=>'doctor'));
-   
-} 
+if ($user = $result->fetch_assoc()) {
+    echo json_encode(array(
+        'name' => $user['name'],
+        'email' => $user['email'],
+        'role' => 'doctor'
+    ));
+} else {
+    echo json_encode(null); // Or a custom error
+}
+?>
