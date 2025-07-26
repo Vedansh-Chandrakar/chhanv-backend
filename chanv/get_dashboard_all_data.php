@@ -31,13 +31,13 @@ try {
     $campsResult = mysqli_query($conn, $campsQuery);
     $totalCamps = mysqli_fetch_assoc($campsResult)['total_camps'];
 
-    // Total Patients (unique from health records)
-    $patientsQuery = "SELECT COUNT(DISTINCT 
-        CASE 
-            WHEN relativeId IS NOT NULL THEN CONCAT('relative_', relativeId)
-            ELSE CONCAT('patient_', patientId)
-        END
-    ) as total_patients FROM healthreports";
+    // Total Patients (from users + relatives + outsiders)
+    $patientsQuery = "
+        SELECT 
+            (SELECT COUNT(*) FROM users) + 
+            (SELECT COUNT(*) FROM relatives) + 
+            (SELECT COUNT(*) FROM outsiders) as total_patients
+    ";
     $patientsResult = mysqli_query($conn, $patientsQuery);
     $totalPatients = mysqli_fetch_assoc($patientsResult)['total_patients'];
 

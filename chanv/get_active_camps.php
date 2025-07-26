@@ -15,11 +15,10 @@ include 'db.php';
 mysqli_set_charset($conn, "utf8mb4");
 
 try {
-    // Get active camps count (status = 'active' or 'ongoing')
+    // Get active camps count (only status = 'ongoing')
     $query = "SELECT COUNT(*) as active_camps 
               FROM camps 
-              WHERE status IN ('active', 'ongoing', 'scheduled') 
-              AND date >= CURDATE()";
+              WHERE status = 'ongoing'";
     
     $result = mysqli_query($conn, $query);
     

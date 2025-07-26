@@ -115,7 +115,7 @@ try {
         LEFT JOIN users u ON hr.patientId = u.id AND hr.relativeId IS NULL
         LEFT JOIN relatives r ON hr.relativeId = r.r_id
         LEFT JOIN users u2 ON r.id = u2.id
-        LEFT JOIN outsiders o ON hr.patientId = o.p_id AND hr.relativeId IS NULL AND u.id IS NULL
+        LEFT JOIN outsiders o ON hr.patientId = o.p_id AND hr.relativeId IS NULL
         LEFT JOIN vital v ON hr.id = v.report_id
         $whereClause
         ORDER BY hr.createdAt DESC
@@ -138,7 +138,7 @@ try {
     while ($row = $result->fetch_assoc()) {
         // Determine patient type and extract patient info
         $patientInfo = [];
-        if ($row['relativeId']) {
+        if (!empty($row['relativeId']) && !empty($row['relative_name'])) {
             // This is a relative record
             $dob = new DateTime($row['relative_dob']);
             $now = new DateTime();
@@ -147,37 +147,49 @@ try {
             $patientInfo = [
                 'id' => $row['relativeId'],
                 'name' => $row['relative_name'],
-                'phone' => $row['relative_phone'],
+                'phone' => $row['relative_phone'] ?? '',
                 'age' => $age,
                 'gender' => $row['relative_gender'],
-                'bloodGroup' => $row['relative_blood_group'],
+                'bloodGroup' => $row['relative_blood_group'] ?? '',
                 'type' => 'relative',
                 'relation' => $row['relative_relation'],
                 'address' => ''
             ];
-        } elseif ($row['user_name']) {
+        } elseif (!empty($row['user_name'])) {
             // This is an employee/user record
             $patientInfo = [
                 'id' => $row['patientId'],
                 'name' => $row['user_name'],
-                'phone' => $row['user_phone'],
+                'phone' => $row['user_phone'] ?? '',
                 'age' => $row['user_age'],
                 'gender' => $row['user_gender'],
-                'bloodGroup' => $row['user_blood_group'],
+                'bloodGroup' => $row['user_blood_group'] ?? '',
                 'type' => 'employee',
-                'department' => $row['user_department'],
-                'address' => $row['user_address']
+                'department' => $row['user_department'] ?? '',
+                'address' => $row['user_address'] ?? ''
             ];
-        } elseif ($row['outsider_name']) {
+        } elseif (!empty($row['outsider_name'])) {
             // This is an outsider record
             $patientInfo = [
                 'id' => $row['patientId'],
                 'name' => $row['outsider_name'],
-                'phone' => $row['outsider_phone'],
+                'phone' => $row['outsider_phone'] ?? '',
                 'age' => $row['outsider_age'],
                 'gender' => $row['outsider_gender'],
-                'bloodGroup' => $row['outsider_blood_group'],
+                'bloodGroup' => $row['outsider_blood_group'] ?? '',
                 'type' => 'outsider',
+                'address' => ''
+            ];
+        } else {
+            // Fallback - no patient info found
+            $patientInfo = [
+                'id' => $row['patientId'] ?? $row['relativeId'],
+                'name' => 'Unknown Patient',
+                'phone' => '',
+                'age' => 0,
+                'gender' => '',
+                'bloodGroup' => '',
+                'type' => 'unknown',
                 'address' => ''
             ];
         }
@@ -249,7 +261,7 @@ try {
         FROM healthreports hr
         LEFT JOIN users u ON hr.patientId = u.id AND hr.relativeId IS NULL
         LEFT JOIN relatives r ON hr.relativeId = r.r_id
-        LEFT JOIN outsiders o ON hr.patientId = o.p_id AND hr.relativeId IS NULL AND u.id IS NULL
+        LEFT JOIN outsiders o ON hr.patientId = o.p_id AND hr.relativeId IS NULL
         $whereClause
     ";
 
